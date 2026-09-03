@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>デモ｜家計簿の自動仕分け・転記</title>
+<style>
+  :root{--b:#0b5cad;--bg:#f6f7f9;--line:#d9dee6}
+  *{box-sizing:border-box} body{margin:0;font-family:"Hiragino Sans","Yu Gothic","Noto Sans JP",sans-serif;color:#1f2937;background:var(--bg);font-size:14px;line-height:1.5}
+  header{background:#fff;border-bottom:3px solid var(--b);padding:14px 20px} header h1{margin:0;font-size:18px} header p{margin:4px 0 0;color:#4b5563;font-size:13px}
+  .note{background:#fff7e6;border:1px solid #f1d28a;border-radius:6px;padding:8px 12px;margin:14px 20px 0;font-size:12.5px}
+  main{display:grid;grid-template-columns:1.2fr 1fr;gap:16px;padding:16px 20px} @media (max-width:900px){main{grid-template-columns:1fr}}
+  .card{background:#fff;border:1px solid var(--line);border-radius:8px;padding:12px 14px} .card h2{margin:0 0 8px;font-size:15px;color:var(--b)} .card h2 small{color:#6b7280;font-weight:400;font-size:12px;margin-left:6px}
+  table{width:100%;border-collapse:collapse;font-size:12.5px} th,td{border-bottom:1px solid #eef1f5;padding:4px 6px;text-align:left;vertical-align:middle} th{background:#f1f5fb;font-weight:600;font-size:12px} td.num{text-align:right;font-variant-numeric:tabular-nums}
+  input[type=text],input[type=number],input[type=date]{padding:3px 5px;border:1px solid #c7ced8;border-radius:4px;font-size:12.5px} input[type=number]{width:84px;text-align:right} input[type=date]{width:130px} input.mid{width:90px} input.content{width:130px}
+  .tag{display:inline-block;padding:1px 7px;border-radius:10px;font-size:11px;color:#fff;background:#6b7280;white-space:nowrap}
+  .t-in{background:#0a7a3a} .t-out{background:#1d4ed8} .t-skip{background:#9ca3af} .t-dict{background:#7c3aed} .t-ai{background:#b45309} .t-transfer{background:#9ca3af}
+  .btnbar{grid-column:1/-1;display:flex;gap:10px;align-items:center;flex-wrap:wrap} button{background:var(--b);color:#fff;border:0;border-radius:6px;padding:10px 18px;font-size:15px;font-weight:700;cursor:pointer} button.ghost{background:#fff;color:var(--b);border:1px solid var(--b);font-weight:500;font-size:13px;padding:8px 12px}
+  .muted{color:#6b7280;font-size:12px} code{background:#eef2f7;padding:1px 5px;border-radius:4px;font-size:12px}
+  .sheet td:first-child{font-weight:600} .sheet .total td{background:#f8fafc;font-weight:700}
+  pre.report{background:#111827;color:#e5e7eb;border-radius:6px;padding:10px 12px;font-size:12.5px;white-space:pre-wrap;margin:0}
+  footer{padding:10px 20px 24px;color:#6b7280;font-size:12px}
+</style>
+</head>
+<body>
+<header>
+  <h1>デモ｜家計簿の自動仕分け・転記</h1>
+  <p>左の明細（家計簿アプリからの月次CSVのつもり）を編集して「仕分けを実行」を押すと、分類 → 家計管理表への転記 → 差分レポートまでが動きます。</p>
+</header>
+<div class="note">
+  <b>このデモについて</b>：収入の分類ルール（<code>classify_income()</code>）は本番の <code>csv_processor.py</code> をそのまま JavaScript に移植しています。支出の仕分け辞書は本番約290件のうちの縮小サンプル（店名はダミー）です。本番では毎月10日に自動で実行され、Googleスプレッドシートへ書き込みます。
+</div>
+<main>
+  <section class="card">
+    <h2>入力：明細CSV <small>「計算対象」「振替」の列は家計簿アプリが付ける印です</small></h2>
+    <table id="rows"><thead><tr><th>日付</th><th>内容（店名など）</th><th style="text-align:right">金額(円)</th><th>中項目</th><th>計算対象</th><th>振替</th></tr></thead><tbody></tbody></table>
+    <p class="muted">試し方：給与の日付を「25日」にすると賞与扱いに／金額を9万円にすると立替分としてスキップ／「カフェ△△」の中項目を空にして未分類にする、など。</p>
+  </section>
+  <section class="card">
+    <h2>仕分け辞書 <small>過去実績から自動学習（採用基準：3回以上かつ一致率90%以上）</small></h2>
+    <table id="dict"><thead><tr><th>店名に含まれる語</th><th>→ 分類</th><th>学習根拠</th></tr></thead><tbody></tbody></table>
+    <div style="margin-top:8px;display:flex;gap:6px;align-items:center;flex-wrap:wrap">
+      <input type="text" id="dictKey" class="content" placeholder="店名の一部（例：カフェ）"> <input type="text" id="dictVal" class="mid" placeholder="分類（例：外食）"> <button class="ghost" id="dictAdd">辞書に追加</button>
+    </div>
+  </section>
+  <div class="btnbar"><button id="run">▶ 仕分けを実行</button><button class="ghost" id="reset">初期状態に戻す</button><span class="muted" id="status"></span></div>
+  <section class="card">
+    <h2>分類結果 <small>1行ずつの判定理由つき</small></h2>
+    <table id="result"><thead><tr><th>内容</th><th style="text-align:right">金額</th><th>判定</th><th>理由</th></tr></thead><tbody><tr><td colspan="4" class="muted">まだ実行していません</td></tr></tbody></table>
+  </section>
+  <section class="card">
+    <h2>家計管理表への転記イメージ <small>Googleスプレッドシートの該当月の列</small></h2>
+    <table id="sheet" class="sheet"><thead><tr><th>行（科目）</th><th style="text-align:right">今月</th></tr></thead><tbody><tr><td colspan="2" class="muted">まだ実行していません</td></tr></tbody></table>
+    <h2 style="margin-top:12px">差分レポート <small>実行ログ（LINEには失敗時だけ通知）</small></h2>
+    <pre class="report" id="report">（実行するとここに表示されます）</pre>
+  </section>
+</main>
+<footer>戻る：<a href="../../systems/01-household-ledger.md">01. 家計簿の自動仕分け・転記</a></footer>
+
+<script>
+// ===== 本番 csv_processor.py から移植：収入分類 =====
+const INCOME_ROWS = {point:"ポイント収入", salary_monthly:"月給", salary_bonus:"賞与", children_grant:"児童手当", side_job:"副収入", dividend:"配当", temporary:"臨時収入", investment:"投資収入"};
+function parseAmount(s){ return Math.abs(parseInt(String(s).replace(/[,円\s]/g,""),10)||0); }
+function classifyIncome(row){
+  const middle=(row.middle||"").trim(), content=(row.content||"").trim(), amount=parseAmount(row.amount);
+  if (middle==="ポイント") return [INCOME_ROWS.point,"中項目がポイント"];
+  if (middle==="給与"){
+    if (content==="給料" && amount<100000) return [null,"内容「給料」かつ10万円未満 → 家計アプリの立替分としてスキップ"];
+    const d=new Date(row.date); const day=d.getDate();
+    if (!isNaN(day)){ if (day>=18 && day<=24 && amount>=100000) return [INCOME_ROWS.salary_monthly,`${day}日払い・10万円以上 → 月給`]; return [INCOME_ROWS.salary_bonus,`${day}日払い → 月末/月初の大きい金額は賞与`]; }
+    return [INCOME_ROWS.salary_monthly,"日付不明 → 月給扱い"];
+  }
+  if (middle==="年金"){ if (content.includes("ジドウ")||content.includes("児童")) return [INCOME_ROWS.children_grant,"内容に「児童/ジドウ」"]; return [INCOME_ROWS.temporary,"年金だが児童手当ではない"]; }
+  if (["不動産所得","事業・副業","メルカリ"].includes(middle)) return [INCOME_ROWS.side_job,"中項目が副業系"];
+  if (middle==="配当所得") return [INCOME_ROWS.dividend,"中項目が配当所得"];
+  if (["その他入金","一時所得","臨時収入"].includes(middle)) return [INCOME_ROWS.temporary,"中項目が臨時系"];
+  if (["株式投資","投資"].includes(middle)) return [INCOME_ROWS.investment,"中項目が投資"];
+  return [null,"分類不能 → 人が判断"];
+}
+// ===== 支出：中項目→管理表の行（category_mapping.py の縮小版）＋ 学習辞書 =====
+const EXPENSE_MAP = {"食料品":"食費","外食":"外食費","日用品":"日用品","ガソリン":"車両費","水道・光熱":"水道光熱費","通信":"通信費","教育":"教育費","医療":"医療費","趣味・娯楽":"娯楽費"};
+function initialDict(){ return [
+  {key:"スーパー",val:"食料品",why:"12回中12回 食料品"},
+  {key:"ドラッグ",val:"日用品",why:"7回中7回 日用品"},
+  {key:"ENEOS",val:"ガソリン",why:"9回中9回 ガソリン"},
+  {key:"牛丼",val:"外食",why:"4回中4回 外食"},
+];}
+function initialRows(){ return [
+  {date:"2026-08-20",content:"カ）○○（給与振込）",amount:285000,middle:"給与",calc:true,transfer:false},
+  {date:"2026-08-20",content:"給料",amount:8000,middle:"給与",calc:true,transfer:false},
+  {date:"2026-08-10",content:"ジドウテアテ",amount:20000,middle:"年金",calc:true,transfer:false},
+  {date:"2026-08-25",content:"配当金 △△ホールディングス",amount:3200,middle:"配当所得",calc:true,transfer:false},
+  {date:"2026-08-03",content:"スーパー○○ 高松店",amount:6480,middle:"食料品",calc:true,transfer:false},
+  {date:"2026-08-05",content:"ドラッグ△△",amount:2180,middle:"",calc:true,transfer:false},
+  {date:"2026-08-07",content:"ENEOS □□SS",amount:5900,middle:"",calc:true,transfer:false},
+  {date:"2026-08-12",content:"カフェ△△",amount:980,middle:"",calc:true,transfer:false},
+  {date:"2026-08-15",content:"牛丼○○ 高松中央店",amount:590,middle:"",calc:true,transfer:false},
+  {date:"2026-08-18",content:"定期預金へ振替",amount:50000,middle:"",calc:true,transfer:true},
+  {date:"2026-08-22",content:"四国電力",amount:11200,middle:"水道・光熱",calc:true,transfer:false},
+  {date:"2026-08-28",content:"クレジット引落（集計対象外）",amount:88000,middle:"",calc:false,transfer:false},
+];}
+let rows=initialRows(), dict=initialDict();
+const PREV_SHEET = {"月給":285000,"児童手当":20000,"食費":5900,"日用品":2180,"車両費":6100,"外食費":590,"水道光熱費":10800}; // 前回転記（比較用ダミー）
+
+function renderRows(){ const tb=document.querySelector("#rows tbody"); tb.innerHTML="";
+  rows.forEach((r,i)=>{ tb.insertAdjacentHTML("beforeend",`<tr><td><input type="date" data-i="${i}" data-k="date" value="${r.date}"></td><td><input type="text" class="content" data-i="${i}" data-k="content" value="${r.content}"></td><td class="num"><input type="number" data-i="${i}" data-k="amount" value="${r.amount}"></td><td><input type="text" class="mid" data-i="${i}" data-k="middle" value="${r.middle}" placeholder="（未分類）"></td><td><input type="checkbox" data-i="${i}" data-k="calc" ${r.calc?"checked":""}></td><td><input type="checkbox" data-i="${i}" data-k="transfer" ${r.transfer?"checked":""}></td></tr>`); });
+  tb.querySelectorAll("input").forEach(el=>el.addEventListener("input",e=>{const r=rows[+e.target.dataset.i],k=e.target.dataset.k; r[k]= e.target.type==="checkbox"?e.target.checked:(k==="amount"?Number(e.target.value):e.target.value);}));
+}
+function renderDict(){ const tb=document.querySelector("#dict tbody"); tb.innerHTML=""; dict.forEach(d=>tb.insertAdjacentHTML("beforeend",`<tr><td>${d.key}</td><td>${d.val}</td><td class="muted">${d.why}</td></tr>`)); }
+const INCOME_MIDDLES=new Set(["給与","ポイント","年金","不動産所得","事業・副業","メルカリ","配当所得","その他入金","一時所得","臨時収入","株式投資","投資"]);
+function run(){
+  const out=[]; const sheet={}; let unclassified=0;
+  for (const r of rows){
+    if (!r.calc){ out.push({r,tag:"t-skip",label:"対象外",why:"計算対象=0（家計簿アプリ側で集計除外）"}); continue; }
+    if (r.transfer){ out.push({r,tag:"t-transfer",label:"振替",why:"振替=1（口座間移動は支出ではない）"}); continue; }
+    if (INCOME_MIDDLES.has((r.middle||"").trim())){
+      const [rowName,why]=classifyIncome(r);
+      if (!rowName){ out.push({r,tag:"t-skip",label:"スキップ",why}); continue; }
+      sheet[rowName]=(sheet[rowName]||0)+parseAmount(r.amount); out.push({r,tag:"t-in",label:`収入：${rowName}`,why}); continue;
+    }
+    let mid=(r.middle||"").trim(), why="";
+    if (!mid){ const hit=dict.find(d=>r.content.includes(d.key)); if (hit){ mid=hit.val; why=`未分類 → 辞書ヒット「${hit.key}」→ ${hit.val}`; out.push({r,tag:"t-dict",label:`支出：${EXPENSE_MAP[mid]||mid}`,why}); sheet[EXPENSE_MAP[mid]||mid]=(sheet[EXPENSE_MAP[mid]||mid]||0)+parseAmount(r.amount); continue; }
+      unclassified++; out.push({r,tag:"t-ai",label:"未分類",why:"辞書に無い店名 → AIが分類候補を提案し、人が確認（3回一致すれば辞書に採用）"}); continue; }
+    const rowName=EXPENSE_MAP[mid]||mid; sheet[rowName]=(sheet[rowName]||0)+parseAmount(r.amount); out.push({r,tag:"t-out",label:`支出：${rowName}`,why:`中項目「${mid}」→ 管理表の行「${rowName}」`});
+  }
+  const tb=document.querySelector("#result tbody"); tb.innerHTML=""; out.forEach(o=>tb.insertAdjacentHTML("beforeend",`<tr><td>${o.r.content}</td><td class="num">${parseAmount(o.r.amount).toLocaleString()}</td><td><span class="tag ${o.tag}">${o.label}</span></td><td class="muted">${o.why}</td></tr>`));
+  const sb=document.querySelector("#sheet tbody"); sb.innerHTML=""; let inc=0,exp=0;
+  Object.entries(sheet).forEach(([k,v])=>{ const isIn=Object.values(INCOME_ROWS).includes(k); if(isIn)inc+=v; else exp+=v; sb.insertAdjacentHTML("beforeend",`<tr><td>${isIn?"（収入）":"（支出）"}${k}</td><td class="num">${v.toLocaleString()}</td></tr>`); });
+  sb.insertAdjacentHTML("beforeend",`<tr class="total"><td>収入合計 / 支出合計 / 収支</td><td class="num">${inc.toLocaleString()} / ${exp.toLocaleString()} / ${(inc-exp).toLocaleString()}</td></tr>`);
+  let add=0,chg=0,del=0; const keys=new Set([...Object.keys(sheet),...Object.keys(PREV_SHEET)]);
+  keys.forEach(k=>{ if(!(k in PREV_SHEET)) add++; else if(!(k in sheet)) del++; else if(PREV_SHEET[k]!==sheet[k]) chg++; });
+  document.getElementById("report").textContent=`=== 2026-08 月次転記 差分レポート ===\n追加  : ${add}件（新規に転記した科目）\n変更  : ${chg}件（前回と金額が異なる科目）\n削除  : ${del}件\n未分類: ${unclassified}件 → AIの分類候補を人が確認\n書き込み先: 家計管理表 / 2026年8月 列\n結果  : 正常終了（LINE通知なし）`;
+  document.getElementById("status").textContent=`実行しました（${new Date().toLocaleTimeString()}）`;
+}
+document.getElementById("run").addEventListener("click",run);
+document.getElementById("reset").addEventListener("click",()=>{rows=initialRows();dict=initialDict();renderRows();renderDict();document.querySelector("#result tbody").innerHTML=`<tr><td colspan="4" class="muted">まだ実行していません</td></tr>`;document.querySelector("#sheet tbody").innerHTML=`<tr><td colspan="2" class="muted">まだ実行していません</td></tr>`;document.getElementById("report").textContent="（実行するとここに表示されます）";document.getElementById("status").textContent="";});
+document.getElementById("dictAdd").addEventListener("click",()=>{const k=document.getElementById("dictKey").value.trim(),v=document.getElementById("dictVal").value.trim(); if(!k||!v)return; dict.push({key:k,val:v,why:"手動追加（デモ）"}); renderDict(); document.getElementById("dictKey").value="";document.getElementById("dictVal").value="";});
+renderRows(); renderDict();
+if (location.search.includes('autorun')) setTimeout(run, 100);
+</script>
+</body>
+</html>

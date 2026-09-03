@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>音声サンプル｜AI音声ニュース番組の毎朝自動生成</title>
+<style>
+  :root{--b:#0b5cad;--bg:#f6f7f9;--line:#d9dee6}
+  *{box-sizing:border-box} body{margin:0;font-family:"Hiragino Sans","Yu Gothic","Noto Sans JP",sans-serif;color:#1f2937;background:var(--bg);font-size:14px;line-height:1.6}
+  header{background:#fff;border-bottom:3px solid var(--b);padding:14px 20px} header h1{margin:0;font-size:18px} header p{margin:4px 0 0;color:#4b5563;font-size:13px}
+  .note{background:#fff7e6;border:1px solid #f1d28a;border-radius:6px;padding:8px 12px;margin:14px 20px 0;font-size:12.5px}
+  main{padding:16px 20px;display:grid;grid-template-columns:1fr 1fr;gap:16px} @media (max-width:900px){main{grid-template-columns:1fr}}
+  .card{background:#fff;border:1px solid var(--line);border-radius:8px;padding:14px} .card h2{margin:0 0 8px;font-size:15px;color:var(--b)} .card h2 small{color:#6b7280;font-weight:400;font-size:12px;margin-left:6px}
+  audio{width:100%;margin:6px 0 10px}
+  .meta{display:grid;grid-template-columns:auto 1fr;gap:4px 12px;font-size:12.5px} .meta b{color:#374151}
+  .script{background:#f8fafc;border:1px solid var(--line);border-radius:6px;padding:10px 12px;font-size:13px;white-space:pre-wrap}
+  .pipe{display:grid;grid-template-columns:repeat(5,1fr);gap:6px;margin-top:8px} .pipe div{border:1px solid var(--line);border-radius:6px;padding:6px;font-size:11.5px;text-align:center;background:#fafafa} .pipe div b{display:block;color:var(--b);font-size:12px}
+  .muted{color:#6b7280;font-size:12px}
+  footer{padding:10px 20px 24px;color:#6b7280;font-size:12px}
+</style>
+</head>
+<body>
+<header>
+  <h1>音声サンプル｜AI音声ニュース番組の毎朝自動生成</h1>
+  <p>毎朝4時台に、ニュース収集 → 2人掛け合いの台本生成 → 音声合成 → 品質検証 → 配信、まで全自動で作っている番組の実物です。</p>
+</header>
+<div class="note">
+  <b>このサンプルについて</b>：2026年9月3日に実際に家族へ配信した「こども版（20分）」から、家族の名前や予定を含まない<b>ニュースコーナー1本（約75秒）</b>を切り出したものです。加工は切り出しとフェードだけで、声・内容は配信そのままです。番組全体は子供向けの構成（挨拶・天気・学校の話題・ニュース2本・クイズ）で、この部分は「世界のビックリニュース 2本目」にあたります。
+</div>
+<main>
+  <section class="card">
+    <h2>再生 <small>75秒・MP3</small></h2>
+    <audio controls preload="metadata" src="sample_mars_news.mp3"></audio>
+    <div class="meta">
+      <b>話者</b><span>ハル（女声）・ソウ（男声）—— Gemini マルチスピーカーTTS のプリセット音声</span>
+      <b>台本</b><span>当日のニュースを素材にAIが執筆（子供向けに数字や比喩を言い換える指示つき）</span>
+      <b>品質検証</b><span>音声のピッチから「女声の比率」を測り、台本上の比率とのズレが0.15以内かを自動判定。外れたテイクは自動で再生成</span>
+      <b>後処理</b><span>LUFS 正規化 → ffmpeg で結合・コンプレッサー → BGM ミックス → m4a</span>
+    </div>
+    <div class="pipe">
+      <div><b>04:00</b>素材収集</div><div><b>04:05</b>台本生成</div><div><b>04:10</b>TTS＋検証</div><div><b>04:20</b>結合・正規化</div><div><b>05:30</b>Driveへ保存・LINE配信</div>
+    </div>
+  </section>
+  <section class="card">
+    <h2>この区間の台本（自動文字起こし） <small>音声認識の結果なので一部誤変換があります</small></h2>
+    <div class="script" id="script">読み込み中…</div>
+    <p class="muted">※ 台本の原文には家族向けの呼びかけが含まれるため、ここでは音声から自動で文字起こしした結果を掲載しています。</p>
+  </section>
+</main>
+<footer>戻る：<a href="../../systems/05-ai-radio.md">05. AI音声ニュース番組の毎朝自動生成</a></footer>
+<script>
+document.getElementById("script").textContent = "わー。 さて、2本目に行きましょう。 2本目は宇宙です。 おととい9月1日に 放じられたニュース。 アメリカのアリゾナデイ学のチームが 火星について、 とんでもないことを見つけました。 火星、赤い星ですね。 そうです。 火星の表面には、 むかすからずっと不思議に 思われていたことがありました。 それは、北半球と南半球で 地面の様子が全く違うということ。 北半球は、 ずるっとした低い平地。 南半球は、 でこぼこした高い土。 同じ1つの星なのに、 上と下でまるで別の星みたいなんです。 半分ずつ、全然違う。 これを近くの2分星といって、 なぜそうなったのか、 ずっと謎でした。 今回のチームは、 火星の重力の ほんのわすかな季節の変化を 分析しました。 すると、火星の中身、 マントルという深いところの温度が 南半球の方が北半球より 200度から400度も 高いらしいと分かったんです。 200度から400度、 中身の温度がそんなに 違うんですか? 違うんです。 表面だけじゃなくて、 深いところの温度まで 南と北で違っていた。 この研究はNatureという 世界で一番有名な科学の 雑誌に乗りました。 火星って1つの名前で呼んでるけど、 中身は全然1つじゃなかった。";
+</script>
+</body>
+</html>

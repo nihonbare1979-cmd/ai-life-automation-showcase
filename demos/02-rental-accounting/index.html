@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>デモ｜領収書の自動読取と経理台帳化</title>
+<style>
+  :root{--b:#0b5cad;--bg:#f6f7f9;--line:#d9dee6}
+  *{box-sizing:border-box} body{margin:0;font-family:"Hiragino Sans","Yu Gothic","Noto Sans JP",sans-serif;color:#1f2937;background:var(--bg);font-size:14px;line-height:1.5}
+  header{background:#fff;border-bottom:3px solid var(--b);padding:14px 20px} header h1{margin:0;font-size:18px} header p{margin:4px 0 0;color:#4b5563;font-size:13px}
+  .note{background:#fff7e6;border:1px solid #f1d28a;border-radius:6px;padding:8px 12px;margin:14px 20px 0;font-size:12.5px}
+  main{display:grid;grid-template-columns:1fr 1fr;gap:16px;padding:16px 20px} @media (max-width:900px){main{grid-template-columns:1fr}}
+  .card{background:#fff;border:1px solid var(--line);border-radius:8px;padding:12px 14px} .card h2{margin:0 0 8px;font-size:15px;color:var(--b)} .card h2 small{color:#6b7280;font-weight:400;font-size:12px;margin-left:6px}
+  .receipts{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+  .rc{border:1px solid var(--line);border-radius:6px;padding:8px;cursor:pointer;background:#fff;transition:.15s} .rc:hover{border-color:var(--b)} .rc.done{opacity:.55;cursor:default}
+  .paper{background:#fffef8;border:1px dashed #cbd5e1;font-family:ui-monospace,Menlo,monospace;font-size:11px;padding:8px;white-space:pre;line-height:1.35;color:#374151;min-height:120px}
+  .rc .cap{font-size:12px;margin-top:6px;text-align:center;color:#4b5563}
+  .steps{display:flex;gap:6px;flex-wrap:wrap;margin:6px 0 10px} .step{flex:1;min-width:120px;border:1px solid var(--line);border-radius:6px;padding:6px 8px;font-size:12px;color:#6b7280;background:#fafafa} .step.on{border-color:var(--b);color:#111;background:#eef4fb;font-weight:600}
+  table{width:100%;border-collapse:collapse;font-size:12.5px} th,td{border-bottom:1px solid #eef1f5;padding:4px 6px;text-align:left} th{background:#f1f5fb;font-size:12px} td.num{text-align:right;font-variant-numeric:tabular-nums}
+  tr.new td{background:#f0fdf4} tr.matched td{background:#eff6ff}
+  .tag{display:inline-block;padding:1px 7px;border-radius:10px;font-size:11px;color:#fff;background:#6b7280} .t-ok{background:#0a7a3a} .t-m{background:#1d4ed8} .t-w{background:#b45309}
+  .kpis{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:8px} .kpi{border:1px solid var(--line);border-radius:6px;padding:8px;text-align:center} .kpi b{display:block;font-size:20px;color:var(--b)} .kpi span{font-size:11.5px;color:#6b7280}
+  .props{display:grid;grid-template-columns:repeat(3,1fr);gap:8px} .prop{border:1px solid var(--line);border-radius:6px;padding:8px;font-size:12px} .prop h3{margin:0 0 4px;font-size:13px} .bar{height:6px;background:#e5e7eb;border-radius:3px;overflow:hidden;margin-top:4px} .bar i{display:block;height:100%;background:#0a7a3a}
+  .muted{color:#6b7280;font-size:12px} code{background:#eef2f7;padding:1px 5px;border-radius:4px;font-size:12px}
+  button.ghost{background:#fff;color:var(--b);border:1px solid var(--b);border-radius:6px;padding:7px 12px;font-size:13px;cursor:pointer}
+  footer{padding:10px 20px 24px;color:#6b7280;font-size:12px}
+</style>
+</head>
+<body>
+<header>
+  <h1>デモ｜領収書の自動読取と経理台帳化</h1>
+  <p>領収書をクリックすると「スマホで撮って受信箱に入れた」ことになります。AI読取 → カード明細との自動消し込み → 台帳追記 → ダッシュボード更新まで流れます。</p>
+</header>
+<div class="note">
+  <b>このデモについて</b>：消し込みロジック（日付＋金額で完全一致 → ±3日）は本番の <code>merge_ledger.py</code> と同じ考え方を移植しています。AI読取の結果は、本番ではAI Vision（OCR）が写真から読み取りますが、ここでは事前に用意した値を表示します（APIキーを公開できないため）。金額・物件名はすべてダミーです。
+</div>
+<main>
+  <section class="card">
+    <h2>受信箱 <small>撮影された領収書（クリックで投入）</small></h2>
+    <div class="receipts" id="receipts"></div>
+    <div class="steps" id="steps">
+      <div class="step" data-s="1">① 写真を受信</div><div class="step" data-s="2">② AI読取</div><div class="step" data-s="3">③ 明細と消し込み</div><div class="step" data-s="4">④ 台帳へ追記</div><div class="step" data-s="5">⑤ ボード更新</div>
+    </div>
+    <h2 style="margin-top:6px">カード明細 <small>取り込み済み（消し込みの相手）</small></h2>
+    <table id="card"><thead><tr><th>日付</th><th>利用先</th><th style="text-align:right">金額</th><th>状態</th></tr></thead><tbody></tbody></table>
+    <p style="margin:8px 0 0"><button class="ghost" id="reset">初期状態に戻す</button></p>
+  </section>
+  <section class="card">
+    <h2>AI読取の結果 <small>写真 → 構造化データ</small></h2>
+    <pre class="paper" id="ocr" style="min-height:90px">（領収書を投入すると、ここに読取結果が出ます）</pre>
+    <h2 style="margin-top:10px">統合台帳 <small>スプレッドシートに毎晩追記される行</small></h2>
+    <table id="ledger"><thead><tr><th>日付</th><th>物件</th><th>科目</th><th>摘要</th><th style="text-align:right">金額</th><th>出所</th></tr></thead><tbody></tbody></table>
+  </section>
+  <section class="card" style="grid-column:1/-1">
+    <h2>妻向けボード（抜粋） <small>毎月、Driveの固定リンクに上書き</small></h2>
+    <div class="kpis"><div class="kpi"><b id="k_rent">¥0</b><span>今月の家賃収入</span></div><div class="kpi"><b id="k_exp">¥0</b><span>今月の経費</span></div><div class="kpi"><b id="k_net">¥0</b><span>今月の収支</span></div></div>
+    <div class="props" id="props"></div>
+  </section>
+</main>
+<footer>戻る：<a href="../../systems/02-rental-accounting.md">02. 妻の不動産事業の経理自動化</a></footer>
+<script>
+const RECEIPTS=[
+ {id:"r1",paper:"  ○○ホームセンター 高松店\n  2026/08/05 14:21\n  ------------------------\n  水栓パッキン      ¥ 480\n  シリコンシーラント ¥1,280\n  ------------------------\n  合計           ¥1,760\n  クレジット",ocr:{date:"2026-08-05",shop:"○○ホームセンター",amount:1760,memo:"水栓パッキン・シーラント",prop:"物件A",account:"修繕費"}},
+ {id:"r2",paper:"  △△電気工事\n  領収書\n  2026年8月12日\n  ------------------------\n  分電盤交換工事\n  金額  ¥38,500-\n  但し 物件B 工事代として\n  現金",ocr:{date:"2026-08-12",shop:"△△電気工事",amount:38500,memo:"分電盤交換",prop:"物件B",account:"修繕費"}},
+ {id:"r3",paper:"  □□ドラッグ\n  2026/08/20\n  ------------------------\n  トイレ洗剤        ¥ 328\n  ゴミ袋            ¥ 398\n  ------------------------\n  合計             ¥ 726\n  クレジット",ocr:{date:"2026-08-21",shop:"□□ドラッグ",amount:726,memo:"清掃用消耗品",prop:"共通",account:"消耗品費"}},
+];
+function initCard(){ return [
+ {date:"2026-08-05",shop:"○○ホームセンター",amount:1760,used:null},
+ {date:"2026-08-19",shop:"□□ドラッグ",amount:726,used:null},        // 領収書は8/21付 → ±3日で一致
+ {date:"2026-08-25",shop:"ガソリンスタンド",amount:4200,used:null},
+];}
+function initLedger(){ return [
+ {date:"2026-08-01",prop:"物件A",account:"家賃収入",memo:"8月分家賃",amount:60000,src:"銀行明細",cls:""},
+ {date:"2026-08-01",prop:"物件C",account:"家賃収入",memo:"8月分家賃",amount:52000,src:"銀行明細",cls:""},
+ {date:"2026-08-25",prop:"共通",account:"車両費",memo:"ガソリン",amount:4200,src:"カード明細",cls:""},
+];}
+let card=initCard(), ledger=initLedger(), done=new Set();
+function daysBetween(a,b){ return Math.abs((new Date(a)-new Date(b))/86400000); }
+// merge_ledger.py の consume() 相当：完全一致 → ±3日
+function consume(pool, amt, dt, tols=[0,3]){ for (const tol of tols){ for (const x of pool){ if (x.used===null && x.amount===amt && daysBetween(x.date,dt)<=tol){ x.used=true; return x; } } } return null; }
+function yen(v){ return (v<0?"▲":"")+"¥"+Math.abs(v).toLocaleString(); }
+function setStep(n){ document.querySelectorAll(".step").forEach(s=>s.classList.toggle("on", +s.dataset.s<=n)); }
+function renderReceipts(){ const box=document.getElementById("receipts"); box.innerHTML=""; RECEIPTS.forEach(r=>{ box.insertAdjacentHTML("beforeend",`<div class="rc ${done.has(r.id)?"done":""}" data-id="${r.id}"><div class="paper">${r.paper}</div><div class="cap">${done.has(r.id)?"✅ 記帳済み":"📷 クリックで投入"}</div></div>`); });
+  box.querySelectorAll(".rc:not(.done)").forEach(el=>el.addEventListener("click",()=>ingest(el.dataset.id))); }
+function renderCard(){ const tb=document.querySelector("#card tbody"); tb.innerHTML=""; card.forEach(c=>tb.insertAdjacentHTML("beforeend",`<tr class="${c.used?"matched":""}"><td>${c.date}</td><td>${c.shop}</td><td class="num">${yen(c.amount)}</td><td>${c.used?'<span class="tag t-m">領収書と消し込み済</span>':'<span class="tag">未照合</span>'}</td></tr>`)); }
+function renderLedger(){ const tb=document.querySelector("#ledger tbody"); tb.innerHTML=""; ledger.forEach(l=>tb.insertAdjacentHTML("beforeend",`<tr class="${l.cls}"><td>${l.date}</td><td>${l.prop}</td><td>${l.account}</td><td>${l.memo}</td><td class="num">${yen(l.amount)}</td><td class="muted">${l.src}</td></tr>`)); }
+function renderBoard(){ const rent=ledger.filter(l=>l.account==="家賃収入").reduce((a,l)=>a+l.amount,0); const exp=ledger.filter(l=>l.account!=="家賃収入").reduce((a,l)=>a+l.amount,0);
+  document.getElementById("k_rent").textContent=yen(rent); document.getElementById("k_exp").textContent=yen(exp); document.getElementById("k_net").textContent=yen(rent-exp);
+  const props={"物件A":{inv:7000000,rent:60000},"物件B":{inv:3000000,rent:0},"物件C":{inv:6500000,rent:52000}}; const box=document.getElementById("props"); box.innerHTML="";
+  for (const [p,v] of Object.entries(props)){ const e=ledger.filter(l=>l.prop===p&&l.account!=="家賃収入").reduce((a,l)=>a+l.amount,0); const rec=Math.min(100, Math.round((v.rent*8-e)/v.inv*100)); const y=v.rent?((v.rent*12)/v.inv*100).toFixed(1):"—";
+    box.insertAdjacentHTML("beforeend",`<div class="prop"><h3>${p}</h3>投下資金 ${yen(v.inv)}<br>今月の経費 <b>${yen(e)}</b><br>表面利回り ${y}%${v.rent?"":"（改修中）"}<div class="bar"><i style="width:${Math.max(0,rec)}%"></i></div><span class="muted">回収率 ${Math.max(0,rec)}%</span></div>`); } }
+async function ingest(id){ const r=RECEIPTS.find(x=>x.id===id); if(!r||done.has(id))return; done.add(id); renderReceipts();
+  const ocr=document.getElementById("ocr"); setStep(1); ocr.textContent="写真を受信しました。AIが読み取り中…"; await sleep(500);
+  setStep(2); ocr.textContent=JSON.stringify(r.ocr,null,2); await sleep(500);
+  setStep(3); const hit=consume(card, r.ocr.amount, r.ocr.date); renderCard(); await sleep(400);
+  setStep(4); const note = hit ? `カード明細と一致（${hit.date}／±${daysBetween(hit.date,r.ocr.date)}日）→ 二重計上せず領収書側を正とする` : "一致する明細なし → 現金払いとして記帳";
+  ledger.push({date:r.ocr.date,prop:r.ocr.prop,account:r.ocr.account,memo:`${r.ocr.memo}（${r.ocr.shop}）`,amount:r.ocr.amount,src:hit?"領収書＋カード":"領収書（現金）",cls:"new"}); ledger.sort((a,b)=>a.date.localeCompare(b.date)); renderLedger();
+  ocr.textContent=JSON.stringify(r.ocr,null,2)+"\n\n消し込み: "+note; await sleep(400); setStep(5); renderBoard(); }
+const sleep=ms=>new Promise(r=>setTimeout(r,ms));
+document.getElementById("reset").addEventListener("click",()=>{card=initCard();ledger=initLedger();done=new Set();setStep(0);document.getElementById("ocr").textContent="（領収書を投入すると、ここに読取結果が出ます）";renderReceipts();renderCard();renderLedger();renderBoard();});
+renderReceipts(); renderCard(); renderLedger(); renderBoard();
+if (location.search.includes("autorun")) (async()=>{ for (const r of RECEIPTS){ await ingest(r.id); } })();
+</script>
+</body>
+</html>

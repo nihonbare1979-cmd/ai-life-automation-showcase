@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>デモ｜物件情報の巡回監視Bot</title>
+<style>
+  :root{--b:#0b5cad;--bg:#f6f7f9;--line:#d9dee6;--new:#0a7a3a;--cross:#b45309;--drop:#1d4ed8;--del:#6b7280}
+  *{box-sizing:border-box} body{margin:0;font-family:"Hiragino Sans","Yu Gothic","Noto Sans JP",sans-serif;color:#1f2937;background:var(--bg);font-size:14px;line-height:1.5}
+  header{background:#fff;border-bottom:3px solid var(--b);padding:14px 20px}
+  header h1{margin:0;font-size:18px} header p{margin:4px 0 0;color:#4b5563;font-size:13px}
+  .note{background:#fff7e6;border:1px solid #f1d28a;border-radius:6px;padding:8px 12px;margin:14px 20px 0;font-size:12.5px}
+  main{display:grid;grid-template-columns:1fr 1fr;gap:16px;padding:16px 20px}
+  @media (max-width:900px){main{grid-template-columns:1fr}}
+  .card{background:#fff;border:1px solid var(--line);border-radius:8px;padding:12px 14px}
+  .card h2{margin:0 0 8px;font-size:15px;color:var(--b)} .card h2 small{color:#6b7280;font-weight:400;font-size:12px;margin-left:6px}
+  table{width:100%;border-collapse:collapse;font-size:13px} th,td{border-bottom:1px solid #eef1f5;padding:5px 6px;text-align:left;vertical-align:middle}
+  th{background:#f1f5fb;font-weight:600;font-size:12px} td.num{text-align:right;font-variant-numeric:tabular-nums}
+  input[type=number]{width:70px;padding:3px 6px;border:1px solid #c7ced8;border-radius:4px;text-align:right;font-size:13px}
+  input[type=checkbox]{transform:scale(1.1)}
+  .btnbar{grid-column:1/-1;display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+  button{background:var(--b);color:#fff;border:0;border-radius:6px;padding:10px 18px;font-size:15px;font-weight:700;cursor:pointer}
+  button.ghost{background:#fff;color:var(--b);border:1px solid var(--b);font-weight:500;font-size:13px;padding:8px 12px}
+  .tag{display:inline-block;padding:1px 7px;border-radius:10px;font-size:11.5px;color:#fff}
+  .t-new{background:var(--new)} .t-cross{background:var(--cross)} .t-drop{background:var(--drop)} .t-delist{background:var(--del)} .t-none{background:#9ca3af}
+  .line{background:#8fd3a5;border-radius:12px;padding:14px;min-height:120px}
+  .bubble{background:#fff;border-radius:12px;padding:10px 12px;white-space:pre-wrap;font-size:13px;max-width:420px;box-shadow:0 1px 2px rgba(0,0,0,.1)}
+  .quiet{color:#374151;font-size:13px}
+  .hist{font-size:11.5px;color:#6b7280}
+  .muted{color:#6b7280;font-size:12px}
+  code{background:#eef2f7;padding:1px 5px;border-radius:4px;font-size:12px}
+  footer{padding:10px 20px 24px;color:#6b7280;font-size:12px}
+</style>
+</head>
+<body>
+<header>
+  <h1>デモ｜物件情報の巡回監視Bot</h1>
+  <p>右側の「今日の巡回結果」の価格やチェックを自由に変えて、「巡回を実行」を押してください。差分を検知し、LINEに送る通知文を組み立てます。</p>
+</header>
+<div class="note">
+  <b>このデモについて</b>：差分検知の部分は、実際に毎朝8:00に動いている <code>crawl.py</code> の <code>detect_events()</code> を JavaScript にそのまま移植したものです。物件データはダミーで、本番では不動産サイト2つ（約400件）を自動で取得します。通知の閾値は本番と同じ「100万円以下」です。
+</div>
+
+<main>
+  <section class="card">
+    <h2>前回の状態 <small>state.json（前日までの記録）</small></h2>
+    <table id="prevTable"><thead><tr><th>物件</th><th>所在</th><th>面積・築年</th><th style="text-align:right">価格(万円)</th><th>価格履歴</th></tr></thead><tbody></tbody></table>
+    <p class="muted">※ 実運用では540件超をここに保持し、毎朝上書き更新しています。</p>
+  </section>
+
+  <section class="card">
+    <h2>今日の巡回結果 <small>サイトから取得した現在の掲載</small></h2>
+    <table id="todayTable"><thead><tr><th>掲載中</th><th>物件</th><th>所在</th><th style="text-align:right">価格(万円)</th></tr></thead><tbody></tbody></table>
+    <p class="muted">チェックを外すと「掲載終了」、価格を下げると「値下げ」として扱われます。下の行は今日初めて見つかった物件です。</p>
+  </section>
+
+  <div class="btnbar">
+    <button id="run">▶ 巡回を実行（差分検知）</button>
+    <button class="ghost" id="reset">初期状態に戻す</button>
+    <span class="muted" id="status"></span>
+  </div>
+
+  <section class="card">
+    <h2>検知したイベント</h2>
+    <table id="eventTable"><thead><tr><th>種別</th><th>物件</th><th>内容</th></tr></thead><tbody><tr><td colspan="3" class="muted">まだ実行していません</td></tr></tbody></table>
+  </section>
+
+  <section class="card">
+    <h2>LINEに届く通知 <small>該当がない日は何も送りません</small></h2>
+    <div class="line" id="lineBox"><span class="quiet">（実行すると、ここに通知文が表示されます）</span></div>
+  </section>
+</main>
+<footer>
+  検知ルール（本番と同一）：①新着で100万円以下 ②値下げで100万円以下に到達 ③すでに100万円以下の物件のさらなる値下げ ／ 今回見つからなかった物件は「掲載終了」として記録（通知はしない）。
+  <br>戻る：<a href="../../systems/03-property-watch.md">03. 物件情報の巡回監視Bot</a>
+</footer>
+
+<script>
+// ===== ダミーデータ =====
+const THRESHOLD_MAN = 100;
+const TODAY = new Date().toISOString().slice(0,10);
+function initialState(){
+  return {properties:{
+    "s1":{key:"s1",title:"中古戸建 A",address:"高松市○○町",spec:"土地189㎡/建物72㎡/1977年築",price_man:20, price_history:[["2026-08-01",20]],active:true},
+    "s2":{key:"s2",title:"中古戸建 B",address:"高松市△△町",spec:"土地257㎡/建物103㎡/1974年築",price_man:80, price_history:[["2026-07-13",120],["2026-08-20",80]],active:true},
+    "s3":{key:"s3",title:"中古戸建 C",address:"高松市□□町",spec:"土地58㎡/建物59㎡/1983年築",price_man:120,price_history:[["2026-07-13",120]],active:true},
+    "s4":{key:"s4",title:"中古戸建 D",address:"高松市◇◇町",spec:"土地117㎡/建物138㎡/1968年築",price_man:150,price_history:[["2026-07-13",150]],active:true},
+    "s5":{key:"s5",title:"中古戸建 E",address:"高松市▽▽町",spec:"土地74㎡/建物56㎡/1953年築",price_man:49, price_history:[["2026-08-10",49]],active:true},
+  }};
+}
+function initialToday(){
+  return [
+    {key:"s1",title:"中古戸建 A",address:"高松市○○町",spec:"土地189㎡/建物72㎡/1977年築",price_man:20, listed:true, isNew:false},
+    {key:"s2",title:"中古戸建 B",address:"高松市△△町",spec:"土地257㎡/建物103㎡/1974年築",price_man:60, listed:true, isNew:false},   // 80→60: さらに値下げ
+    {key:"s3",title:"中古戸建 C",address:"高松市□□町",spec:"土地58㎡/建物59㎡/1983年築",price_man:98, listed:true, isNew:false},    // 120→98: 100万ラインを下回る
+    {key:"s4",title:"中古戸建 D",address:"高松市◇◇町",spec:"土地117㎡/建物138㎡/1968年築",price_man:150,listed:true, isNew:false},   // 変化なし
+    {key:"s5",title:"中古戸建 E",address:"高松市▽▽町",spec:"土地74㎡/建物56㎡/1953年築",price_man:49, listed:false,isNew:false},   // 掲載終了
+    {key:"n1",title:"中古戸建 F（新着）",address:"高松市☆☆町",spec:"土地83㎡/建物95㎡/1976年築",price_man:100,listed:true, isNew:true}, // 新着・100万
+    {key:"n2",title:"中古戸建 G（新着）",address:"高松市★★町",spec:"土地120㎡/建物88㎡/1985年築",price_man:280,listed:true, isNew:true}, // 新着だが対象外
+  ];
+}
+let state = initialState();
+let today = initialToday();
+
+// ===== crawl.py の detect_events() を移植 =====
+function detectEvents(state, current, today){
+  const known = state.properties;
+  const events = [];
+  for (const [key, info] of Object.entries(current)) {
+    if (!(key in known)) {
+      const rec = {...info, first_seen: today, last_seen: today, active: true, price_history: [[today, info.price_man]]};
+      known[key] = rec;
+      if (info.price_man <= THRESHOLD_MAN) events.push(["new", key, info, null]);
+    } else {
+      const rec = known[key];
+      const old = rec.price_man;
+      rec.last_seen = today; rec.active = true; delete rec.delisted;
+      if (info.price_man !== old) {
+        rec.price_history.push([today, info.price_man]);
+        rec.price_man = info.price_man;
+        if (info.price_man < old) {
+          if (old > THRESHOLD_MAN && THRESHOLD_MAN >= info.price_man) events.push(["cross", key, info, old]);
+          else if (old <= THRESHOLD_MAN) events.push(["drop", key, info, old]);
+        }
+      }
+      for (const f of ["title","address","spec"]) rec[f] = info[f];
+    }
+  }
+  for (const [key, rec] of Object.entries(known)) {
+    if (!(key in current) && rec.active) { rec.active = false; rec.delisted = today; events.push(["delist", key, rec, null]); }
+  }
+  return events;
+}
+const KIND_LABEL = {new:"🆕 新着（100万円以下）", cross:"📉 値下げで100万円以下に", drop:"📉 さらに値下げ", delist:"掲載終了（記録のみ）"};
+function fmtProp(info, old){
+  const price = old != null ? `${old}万円 → ${info.price_man}万円` : `${info.price_man}万円`;
+  return `・${price} ${info.address} ${info.spec}`;
+}
+function buildMessage(events){
+  const notify = events.filter(e => e[0] !== "delist");
+  if (!notify.length) return null;
+  const d = new Date(); const parts = [`🏚 高松市 格安戸建ウォッチ (${d.getMonth()+1}/${d.getDate()})`];
+  for (const [kind, , info, old] of notify) parts.push(`\n${KIND_LABEL[kind]}\n${fmtProp(info, old)}`);
+  return parts.join("\n");
+}
+
+// ===== 画面 =====
+function renderPrev(){
+  const tb = document.querySelector("#prevTable tbody"); tb.innerHTML = "";
+  for (const rec of Object.values(state.properties)) {
+    const hist = rec.price_history.map(h => `${h[0].slice(5)}:${h[1]}`).join(" → ");
+    const st = rec.active === false ? ` <span class="tag t-delist">終了</span>` : "";
+    tb.insertAdjacentHTML("beforeend", `<tr><td>${rec.title}${st}</td><td>${rec.address}</td><td class="hist">${rec.spec}</td><td class="num">${rec.price_man}</td><td class="hist">${hist}</td></tr>`);
+  }
+}
+function renderToday(){
+  const tb = document.querySelector("#todayTable tbody"); tb.innerHTML = "";
+  today.forEach((t, i) => {
+    tb.insertAdjacentHTML("beforeend", `<tr><td><input type="checkbox" data-i="${i}" ${t.listed?"checked":""}></td><td>${t.title}${t.isNew?' <span class="tag t-new">今日初めて発見</span>':""}</td><td>${t.address}</td><td class="num"><input type="number" data-i="${i}" value="${t.price_man}" min="1" step="1"></td></tr>`);
+  });
+  tb.querySelectorAll("input[type=checkbox]").forEach(el => el.addEventListener("change", e => { today[+e.target.dataset.i].listed = e.target.checked; }));
+  tb.querySelectorAll("input[type=number]").forEach(el => el.addEventListener("input", e => { today[+e.target.dataset.i].price_man = Number(e.target.value)||0; }));
+}
+function run(){
+  const current = {};
+  for (const t of today) if (t.listed) current[t.key] = {key:t.key,title:t.title,address:t.address,spec:t.spec,price_man:t.price_man};
+  const events = detectEvents(state, current, TODAY);
+  const tb = document.querySelector("#eventTable tbody"); tb.innerHTML = "";
+  if (!events.length) tb.innerHTML = `<tr><td colspan="3" class="muted">変化なし（該当イベントなし）</td></tr>`;
+  for (const [kind, key, info, old] of events) {
+    const cls = {new:"t-new",cross:"t-cross",drop:"t-drop",delist:"t-delist"}[kind];
+    const txt = old != null ? `${old}万円 → ${info.price_man}万円` : (kind==="delist" ? "今回の取得に含まれず" : `${info.price_man}万円`);
+    tb.insertAdjacentHTML("beforeend", `<tr><td><span class="tag ${cls}">${KIND_LABEL[kind]}</span></td><td>${info.title}<br><span class="hist">${info.address}</span></td><td>${txt}</td></tr>`);
+  }
+  const msg = buildMessage(events);
+  const box = document.getElementById("lineBox");
+  box.innerHTML = msg ? `<div class="bubble">${msg.replace(/</g,"&lt;")}</div>` : `<span class="quiet">通知対象なし → 今日は何も送りません（沈黙）</span>`;
+  // 今日の結果を「前回の状態」に反映（本番では state.json を保存）
+  today = today.map(t => ({...t, isNew:false}));
+  renderPrev(); renderToday();
+  document.getElementById("status").textContent = `実行しました（${new Date().toLocaleTimeString()}）。もう一度価格を変えて試せます。`;
+}
+document.getElementById("run").addEventListener("click", run);
+document.getElementById("reset").addEventListener("click", () => { state = initialState(); today = initialToday(); renderPrev(); renderToday();
+  document.querySelector("#eventTable tbody").innerHTML = `<tr><td colspan="3" class="muted">まだ実行していません</td></tr>`;
+  document.getElementById("lineBox").innerHTML = `<span class="quiet">（実行すると、ここに通知文が表示されます）</span>`; document.getElementById("status").textContent = ""; });
+renderPrev(); renderToday();
+if (location.search.includes('autorun')) setTimeout(run, 100);
+</script>
+</body>
+</html>

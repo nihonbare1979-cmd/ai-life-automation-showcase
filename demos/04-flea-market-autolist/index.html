@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>デモ｜家庭の不用品を「写真1枚」で自動出品</title>
+<style>
+  :root{--b:#0b5cad;--bg:#f6f7f9;--line:#d9dee6}
+  *{box-sizing:border-box} body{margin:0;font-family:"Hiragino Sans","Yu Gothic","Noto Sans JP",sans-serif;color:#1f2937;background:var(--bg);font-size:14px;line-height:1.5}
+  header{background:#fff;border-bottom:3px solid var(--b);padding:14px 20px} header h1{margin:0;font-size:18px} header p{margin:4px 0 0;color:#4b5563;font-size:13px}
+  .note{background:#fff7e6;border:1px solid #f1d28a;border-radius:6px;padding:8px 12px;margin:14px 20px 0;font-size:12.5px}
+  main{padding:16px 20px;display:grid;gap:16px}
+  .card{background:#fff;border:1px solid var(--line);border-radius:8px;padding:12px 14px} .card h2{margin:0 0 8px;font-size:15px;color:var(--b)} .card h2 small{color:#6b7280;font-weight:400;font-size:12px;margin-left:6px}
+  .flow{display:grid;grid-template-columns:repeat(4,1fr);gap:10px} @media (max-width:900px){.flow{grid-template-columns:repeat(2,1fr)}}
+  .st{border:1px solid var(--line);border-radius:8px;padding:10px;text-align:center;opacity:.45;transition:.3s} .st.on{opacity:1;border-color:var(--b);box-shadow:0 0 0 2px #dbe7f5}
+  .st h3{margin:0 0 6px;font-size:13px} .st img{width:100%;aspect-ratio:1/1;object-fit:cover;border-radius:6px;background:#eee} .st p{margin:6px 0 0;font-size:11.5px;color:#4b5563}
+  .st .ph{width:100%;aspect-ratio:1/1;border-radius:6px;background:#f1f5fb;display:flex;align-items:center;justify-content:center;color:#9ca3af;font-size:12px}
+  .actions{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+  button{background:var(--b);color:#fff;border:0;border-radius:6px;padding:10px 18px;font-size:15px;font-weight:700;cursor:pointer} button:disabled{background:#9ca3af;cursor:not-allowed} button.ghost{background:#fff;color:var(--b);border:1px solid var(--b);font-weight:500;font-size:13px;padding:8px 12px}
+  .grid2{display:grid;grid-template-columns:1fr 1fr;gap:16px} @media (max-width:900px){.grid2{grid-template-columns:1fr}}
+  pre.json{background:#111827;color:#e5e7eb;border-radius:6px;padding:10px 12px;font-size:12px;white-space:pre-wrap;margin:0;max-height:360px;overflow:auto}
+  .sites{display:grid;grid-template-columns:repeat(3,1fr);gap:10px} @media (max-width:900px){.sites{grid-template-columns:1fr}}
+  .site{border:1px solid var(--line);border-radius:8px;overflow:hidden} .site .hd{padding:6px 10px;color:#fff;font-weight:700;font-size:13px} .m{background:#e60012} .l{background:#0b7a4b} .j{background:#f59e0b}
+  .site .bd{padding:8px 10px} .site label{display:block;font-size:11px;color:#6b7280;margin-top:6px} .site .v{border:1px solid #c7ced8;border-radius:4px;padding:4px 6px;font-size:12.5px;background:#fff;min-height:26px;white-space:pre-wrap} .site .v.empty{background:#f9fafb;color:#9ca3af}
+  .site .v.typed{background:#f0fdf4;border-color:#86efac}
+  .chk{font-size:11.5px;color:#0a7a3a;margin-top:6px} .post{margin-top:8px;width:100%;background:#9ca3af;font-size:13px;padding:8px}
+  .muted{color:#6b7280;font-size:12px} code{background:#eef2f7;padding:1px 5px;border-radius:4px;font-size:12px}
+  footer{padding:10px 20px 24px;color:#6b7280;font-size:12px}
+</style>
+</head>
+<body>
+<header>
+  <h1>デモ｜家庭の不用品を「写真1枚」で自動出品</h1>
+  <p>「写真を受信箱に入れる」を押すと、AI分析 → 写真補正 → サムネイル合成 → 3サイトのフォーム自動入力まで進みます。最後の出品ボタンだけは、本番でも必ず人が押します。</p>
+</header>
+<div class="note">
+  <b>このデモについて</b>：写真・補正後画像・サムネイル・商品情報は、実際にこの仕組みで出品した私物（バックパック）の<b>本物の生成物</b>です。AI分析（商品情報の生成・相場調査）と画像処理は本番では自動で走りますが、APIキーやブラウザ操作を公開できないため、ここでは生成済みの結果を段階的に表示します。フォーム自動入力は各サイトの画面を模した再現です。
+</div>
+<main>
+  <section class="card">
+    <h2>処理の流れ <small>クリックで1段階ずつ進みます</small></h2>
+    <div class="flow">
+      <div class="st on" id="s1"><h3>① 撮影した写真</h3><img src="orig_01.jpg" alt="元写真"><p>iPhoneで撮って Drive の受信箱に置くだけ</p></div>
+      <div class="st" id="s2"><h3>② AI分析</h3><div class="ph" id="ph2">タイトル・説明文・カテゴリ・状態・相場</div><p>写真から商品を特定し、Web検索で相場を調べて値付け根拠を作成</p></div>
+      <div class="st" id="s3"><h3>③ 写真補正</h3><div class="ph" id="ph3">明度・色・シャープ／被写体検出クロップ</div><p>商品画素は変えず、見栄えだけ整える</p></div>
+      <div class="st" id="s4"><h3>④ サムネイル合成</h3><div class="ph" id="ph4">ぼかし背景＋タイトル焼き込み</div><p>一覧で目に留まる1枚目を自動生成</p></div>
+    </div>
+    <div class="actions" style="margin-top:10px"><button id="next">▶ 写真を受信箱に入れる</button><button class="ghost" id="reset">最初から</button><span class="muted" id="status"></span></div>
+  </section>
+  <div class="grid2">
+    <section class="card">
+      <h2>AIが生成した商品情報 <small>product_info.json（人がここで確認・修正）</small></h2>
+      <pre class="json" id="json">（②で表示されます）</pre>
+    </section>
+    <section class="card">
+      <h2>3サイトへのフォーム自動入力 <small>ブラウザを自動操作して入力 → 読み戻して検収</small></h2>
+      <div class="sites" id="sites"></div>
+      <p class="muted" style="margin-top:8px">価格ルール：リベシティ・ジモティーはメルカリ価格×0.9（手数料差の調整）。入力後、ページから値を読み戻して照合し、漏れがあれば再入力します。</p>
+    </section>
+  </div>
+</main>
+<footer>戻る：<a href="../../systems/04-flea-market-autolist.md">04. 家庭の不用品を「写真1枚」で自動出品</a></footer>
+<script>
+const PRODUCT = {"title": "MAMMUT マムート LITHIUM 20 バックパック オリーブ 20L", "description": "マムート（MAMMUT）のバックパック「LITHIUM 20」です。容量20Lのハイキング・デイユース向けモデルで、カラーはオリーブ／カーキ系。\n\n■ 特徴（写真で確認できる範囲）\n・本体正面にマムートのマンモスロゴ\n・トップハンドル、フロントジップポケット\n・チェストストラップ（ハイドレーション用の「H2O」表記あり）、ウエストベルト付き\n・背面はメッシュのベンチレーション構造\n・両サイドのコンプレッションストラップ、底部にドローコード\n・メイン気室のほかに内側ポケットあり（写真参照）\n\n■ 状態\n・中古品です。全体に使用に伴う擦れ・汚れ・色あせが見られます\n・生地の破れや大きなダメージは写真で確認した範囲では見当たりません\n・ファスナー・バックルは動作確認済みです\n\n※ サイズ・重量の実測はしていません。写真でご判断ください。\n※ 中古品のため、細かなキズや使用感はご容赦ください。\n\n■ 発送について\n圧縮して簡易梱包のうえ発送いたします。", "price": 7800, "price_reason": "メーカー希望小売価格は税込17,600円（マムート公式）。中古市場の実売レンジが検索では特定できなかったため、定価の4〜5割・使用感ありを織り込んだ推定価格。値下げ交渉を見込んで少し高めに設定。", "category": "スポーツ・アウトドア", "category_path": ["アウトドア・釣り・旅行用品", "アウトドア", "リュック・バッグ", "バックパック・ザック"], "condition": "やや傷や汚れあり", "condition_detail": "全体に擦れ・汚れ・色あせあり。破れなし。ファスナー・バックルは動作確認済み。", "price_libecity": 7000};
+let step = 1;
+const SITES = [
+  {id:"m",name:"メルカリ",cls:"m",priceKey:"price",fields:["title","category","condition","price","description"]},
+  {id:"l",name:"リベシティ",cls:"l",priceKey:"price_libecity",fields:["title","condition","price","description"]},
+  {id:"j",name:"ジモティー",cls:"j",priceKey:"price_libecity",fields:["title","category","price","description"]},
+];
+const LABEL = {title:"商品名",category:"カテゴリー",condition:"商品の状態",price:"販売価格",description:"商品の説明"};
+function val(site, f){
+  if (f==="price") return "¥" + Number(PRODUCT[site.priceKey] ?? PRODUCT.price).toLocaleString();
+  if (f==="category") return (PRODUCT.category_path||[PRODUCT.category]).join(" > ");
+  if (f==="description") return String(PRODUCT.description||"").slice(0,110) + "…";
+  return PRODUCT[f] ?? "";
+}
+function renderSites(filled){
+  const box=document.getElementById("sites"); box.innerHTML="";
+  for (const s of SITES){
+    let html=`<div class="site"><div class="hd ${s.cls}">${s.name}</div><div class="bd">`;
+    for (const f of s.fields) html+=`<label>${LABEL[f]}</label><div class="v ${filled?"typed":"empty"}">${filled?val(s,f):"（自動入力待ち）"}</div>`;
+    html+= filled ? `<div class="chk">✔ 読み戻し検収OK（入力値とページ表示が一致）</div>` : `<div class="chk" style="color:#9ca3af">未入力</div>`;
+    html+=`<button class="post" disabled>出品する（本番でも人が押す）</button></div></div>`;
+    box.insertAdjacentHTML("beforeend", html);
+  }
+}
+function advance(){
+  step++;
+  const st=document.getElementById("status");
+  if (step===2){ document.getElementById("s2").classList.add("on"); document.getElementById("json").textContent=JSON.stringify(PRODUCT,null,2); document.getElementById("ph2").textContent="✔ 商品情報を生成（右に表示）"; st.textContent="AIが写真から商品を特定し、相場を調べて価格根拠を作りました。人はここで内容を確認します。"; document.getElementById("next").textContent="▶ 確認OK → 写真を補正"; }
+  else if (step===3){ document.getElementById("s3").classList.add("on"); document.getElementById("ph3").outerHTML=`<img src="enhanced_01.jpg" alt="補正後" id="ph3">`; st.textContent="明度・コントラスト・シャープネスを補正。被写体が画面いっぱいなのでクロップはなし、と自動判定しています。"; document.getElementById("next").textContent="▶ サムネイルを合成"; }
+  else if (step===4){ document.getElementById("s4").classList.add("on"); document.getElementById("ph4").outerHTML=`<img src="thumbnail.jpg" alt="サムネイル" id="ph4">`; st.textContent="実写のぼかし背景にタイトルを焼き込んだ1枚目を生成しました。"; document.getElementById("next").textContent="▶ 3サイトのフォームに自動入力"; }
+  else if (step===5){ renderSites(true); st.textContent="3サイトに入力し、読み戻し検収まで完了。あとは人が内容を見て「出品する」を押すだけ（このデモでは押せません）。"; document.getElementById("next").disabled=true; document.getElementById("next").textContent="完了"; }
+}
+function reset(){ step=1; ["s2","s3","s4"].forEach(id=>document.getElementById(id).classList.remove("on"));
+  document.getElementById("json").textContent="（②で表示されます）"; document.getElementById("ph2").textContent="タイトル・説明文・カテゴリ・状態・相場";
+  const p3=document.getElementById("ph3"); p3.outerHTML=`<div class="ph" id="ph3">明度・色・シャープ／被写体検出クロップ</div>`; const p4=document.getElementById("ph4"); p4.outerHTML=`<div class="ph" id="ph4">ぼかし背景＋タイトル焼き込み</div>`;
+  renderSites(false); const b=document.getElementById("next"); b.disabled=false; b.textContent="▶ 写真を受信箱に入れる"; document.getElementById("status").textContent=""; }
+document.getElementById("next").addEventListener("click", advance);
+document.getElementById("reset").addEventListener("click", reset);
+renderSites(false);
+if (location.search.includes("autorun")) { for (let i=0;i<4;i++) advance(); }
+</script>
+</body>
+</html>
