@@ -26,12 +26,19 @@
   .chk{font-size:11.5px;color:#0a7a3a;margin-top:6px} .post{margin-top:8px;width:100%;background:#9ca3af;font-size:13px;padding:8px}
   .muted{color:#6b7280;font-size:12px} code{background:#eef2f7;padding:1px 5px;border-radius:4px;font-size:12px}
   footer{padding:10px 20px 24px;color:#6b7280;font-size:12px}
+  .cmp{position:relative;width:100%;max-width:520px;aspect-ratio:1/1;overflow:hidden;border-radius:8px;border:1px solid var(--line);background:#eee;user-select:none;touch-action:none}
+  .cmp img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;display:block}
+  .cmp .after{clip-path:inset(0 0 0 50%)} .cmp .handle{position:absolute;top:0;bottom:0;left:50%;width:2px;background:#fff;box-shadow:0 0 0 1px rgba(0,0,0,.3)}
+  .cmp .knob{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:34px;height:34px;border-radius:50%;background:#fff;border:2px solid var(--b);display:flex;align-items:center;justify-content:center;font-size:13px;color:var(--b);font-weight:700}
+  .cmp .lb{position:absolute;top:8px;padding:2px 8px;border-radius:10px;font-size:11px;color:#fff;background:rgba(0,0,0,.55)} .cmp .lb.l{left:8px} .cmp .lb.r{right:8px}
+  .cmpwrap{display:grid;grid-template-columns:1fr 1fr;gap:12px;align-items:start} @media (max-width:900px){.cmpwrap{grid-template-columns:1fr}}
+  .cmpwrap img.ov{width:100%;border-radius:8px;border:1px solid var(--line)}
 </style>
 </head>
 <body>
 <header>
   <h1>デモ｜家庭の不用品を「写真1枚」で自動出品</h1>
-  <p>「写真を受信箱に入れる」を押すと、AI分析 → 写真補正 → サムネイル合成 → 3サイトのフォーム自動入力まで進みます。最後の出品ボタンだけは、本番でも必ず人が押します。</p>
+  <p>「写真を受信箱に入れる」を押すと、AI分析 → 構図調整 → サムネイル合成 → 3サイトのフォーム自動入力まで進みます。最後の出品ボタンだけは、本番でも必ず人が押します。</p>
 </header>
 <div class="note">
   <b>このデモについて</b>：写真・補正後画像・サムネイル・商品情報は、実際にこの仕組みで出品した私物（バックパック）の<b>本物の生成物</b>です。AI分析（商品情報の生成・相場調査）と画像処理は本番では自動で走りますが、APIキーやブラウザ操作を公開できないため、ここでは生成済みの結果を段階的に表示します。フォーム自動入力は各サイトの画面を模した再現です。
@@ -42,10 +49,28 @@
     <div class="flow">
       <div class="st on" id="s1"><h3>① 撮影した写真</h3><img src="orig_01.jpg" alt="元写真"><p>iPhoneで撮って Drive の受信箱に置くだけ</p></div>
       <div class="st" id="s2"><h3>② AI分析</h3><div class="ph" id="ph2">タイトル・説明文・カテゴリ・状態・相場</div><p>写真から商品を特定し、Web検索で相場を調べて値付け根拠を作成</p></div>
-      <div class="st" id="s3"><h3>③ 写真補正</h3><div class="ph" id="ph3">明度・色・シャープ／被写体検出クロップ</div><p>商品画素は変えず、見栄えだけ整える</p></div>
+      <div class="st" id="s3"><h3>③ 構図の自動調整</h3><div class="ph" id="ph3">AIが被写体を検出 → 必要なら正方形クロップ</div><p>色・明るさは変えない（状態を偽らない方針）。引きの写真だけ商品が75%になるよう切り出す</p></div>
       <div class="st" id="s4"><h3>④ サムネイル合成</h3><div class="ph" id="ph4">ぼかし背景＋タイトル焼き込み</div><p>一覧で目に留まる1枚目を自動生成</p></div>
     </div>
     <div class="actions" style="margin-top:10px"><button id="next">▶ 写真を受信箱に入れる</button><button class="ghost" id="reset">最初から</button><span class="muted" id="status"></span></div>
+  </section>
+  <section class="card" id="cropCard" hidden>
+    <h2>③ 構図の自動調整はこう働く <small>別の出品写真（引きで撮ったもの）での実例。スライダーを左右に動かして比較</small></h2>
+    <div class="cmpwrap">
+      <div>
+        <div class="cmp" id="cmp">
+          <img src="crop_before.jpg" alt="元写真">
+          <img class="after" src="crop_after.jpg" alt="構図調整後">
+          <div class="handle"></div><div class="knob">⇔</div>
+          <span class="lb l">元写真</span><span class="lb r">構図調整後</span>
+        </div>
+        <p class="muted" id="cropNote" style="margin:6px 0 0"></p>
+      </div>
+      <div>
+        <img class="ov" src="crop_overlay.jpg" alt="AIの検出結果">
+        <p class="muted" style="margin:6px 0 0">AIが検出した被写体（緑の枠）と、そこから決めた正方形の切り出し枠（青）。商品が枠の75%を占めるように位置と大きさを決めています。色・明るさには手を加えません。</p>
+      </div>
+    </div>
   </section>
   <div class="grid2">
     <section class="card">
@@ -88,16 +113,20 @@ function renderSites(filled){
 function advance(){
   step++;
   const st=document.getElementById("status");
-  if (step===2){ document.getElementById("s2").classList.add("on"); document.getElementById("json").textContent=JSON.stringify(PRODUCT,null,2); document.getElementById("ph2").textContent="✔ 商品情報を生成（右に表示）"; st.textContent="AIが写真から商品を特定し、相場を調べて価格根拠を作りました。人はここで内容を確認します。"; document.getElementById("next").textContent="▶ 確認OK → 写真を補正"; }
-  else if (step===3){ document.getElementById("s3").classList.add("on"); document.getElementById("ph3").outerHTML=`<img src="enhanced_01.jpg" alt="補正後" id="ph3">`; st.textContent="明度・コントラスト・シャープネスを補正。被写体が画面いっぱいなのでクロップはなし、と自動判定しています。"; document.getElementById("next").textContent="▶ サムネイルを合成"; }
+  if (step===2){ document.getElementById("s2").classList.add("on"); document.getElementById("json").textContent=JSON.stringify(PRODUCT,null,2); document.getElementById("ph2").textContent="✔ 商品情報を生成（右に表示）"; st.textContent="AIが写真から商品を特定し、相場を調べて価格根拠を作りました。人はここで内容を確認します。"; document.getElementById("next").textContent="▶ 確認OK → 構図を調整"; }
+  else if (step===3){ document.getElementById("s3").classList.add("on"); document.getElementById("ph3").outerHTML=`<img src="enhanced_01.jpg" alt="補正後" id="ph3">`; st.textContent="AIが被写体を検出。この写真は商品が画面いっぱいなので『クロップ不要』と自動判定（色・明るさは加工しません）。"; document.getElementById("next").textContent="▶ サムネイルを合成"; document.getElementById("cropCard").hidden=false; document.getElementById("cropNote").textContent=CROP_NOTE; }
   else if (step===4){ document.getElementById("s4").classList.add("on"); document.getElementById("ph4").outerHTML=`<img src="thumbnail.jpg" alt="サムネイル" id="ph4">`; st.textContent="実写のぼかし背景にタイトルを焼き込んだ1枚目を生成しました。"; document.getElementById("next").textContent="▶ 3サイトのフォームに自動入力"; }
   else if (step===5){ renderSites(true); st.textContent="3サイトに入力し、読み戻し検収まで完了。あとは人が内容を見て「出品する」を押すだけ（このデモでは押せません）。"; document.getElementById("next").disabled=true; document.getElementById("next").textContent="完了"; }
 }
-function reset(){ step=1; ["s2","s3","s4"].forEach(id=>document.getElementById(id).classList.remove("on"));
+function reset(){ step=1; document.getElementById("cropCard").hidden=true; ["s2","s3","s4"].forEach(id=>document.getElementById(id).classList.remove("on"));
   document.getElementById("json").textContent="（②で表示されます）"; document.getElementById("ph2").textContent="タイトル・説明文・カテゴリ・状態・相場";
-  const p3=document.getElementById("ph3"); p3.outerHTML=`<div class="ph" id="ph3">明度・色・シャープ／被写体検出クロップ</div>`; const p4=document.getElementById("ph4"); p4.outerHTML=`<div class="ph" id="ph4">ぼかし背景＋タイトル焼き込み</div>`;
+  const p3=document.getElementById("ph3"); p3.outerHTML=`<div class="ph" id="ph3">AIが被写体を検出 → 必要なら正方形クロップ</div>`; const p4=document.getElementById("ph4"); p4.outerHTML=`<div class="ph" id="ph4">ぼかし背景＋タイトル焼き込み</div>`;
   renderSites(false); const b=document.getElementById("next"); b.disabled=false; b.textContent="▶ 写真を受信箱に入れる"; document.getElementById("status").textContent=""; }
 document.getElementById("next").addEventListener("click", advance);
+const CROP_NOTE = "この写真は別の出品物（USB変換アダプタ）を手に持って引きで撮ったもの。AIが商品部分を検出し（緑）、商品が75%を占める正方形（青）に切り出しています。色・明るさは元のまま。※本番処理（photo_enhance.py）の実出力です。";
+(function(){ const c=document.getElementById("cmp"); if(!c) return; const after=c.querySelector(".after"), h=c.querySelector(".handle"), k=c.querySelector(".knob");
+  function setX(clientX){ const r=c.getBoundingClientRect(); let x=Math.max(0,Math.min(r.width,clientX-r.left)); const pct=x/r.width*100; after.style.clipPath=`inset(0 0 0 ${pct}%)`; h.style.left=pct+"%"; k.style.left=pct+"%"; }
+  let drag=false; c.addEventListener("pointerdown",e=>{drag=true;setX(e.clientX)}); window.addEventListener("pointermove",e=>{if(drag)setX(e.clientX)}); window.addEventListener("pointerup",()=>drag=false); })();
 document.getElementById("reset").addEventListener("click", reset);
 renderSites(false);
 if (location.search.includes("autorun")) { for (let i=0;i<4;i++) advance(); }
