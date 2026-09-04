@@ -41,13 +41,13 @@
   <p>「写真を受信箱に入れる」を押すと、AI分析 → 構図調整 → サムネイル合成 → 3サイトのフォーム自動入力まで進みます。最後の出品ボタンだけは、本番でも必ず人が押します。</p>
 </header>
 <div class="note">
-  <b>このデモについて</b>：写真・補正後画像・サムネイル・商品情報は、実際にこの仕組みで出品した私物（バックパック）の<b>本物の生成物</b>です。AI分析（商品情報の生成・相場調査）と画像処理は本番では自動で走りますが、APIキーやブラウザ操作を公開できないため、ここでは生成済みの結果を段階的に表示します。フォーム自動入力は各サイトの画面を模した再現です。
+  <b>このデモについて</b>：写真・補正後画像・サムネイル・商品情報は、実際にこの仕組みで出品した私物（ゲームコントローラー用のUSBワイヤレスアダプタ）の<b>本物の生成物</b>です。AI分析（商品情報の生成・相場調査）と画像処理は本番では自動で走りますが、APIキーやブラウザ操作を公開できないため、ここでは生成済みの結果を段階的に表示します。フォーム自動入力は各サイトの画面を模した再現です。
 </div>
 <main>
   <section class="card">
     <h2>処理の流れ <small>クリックで1段階ずつ進みます</small></h2>
     <div class="flow">
-      <div class="st on" id="s1"><h3>① 撮影した写真</h3><img src="orig_01.jpg" alt="元写真"><p>iPhoneで撮って Drive の受信箱に置くだけ</p></div>
+      <div class="st on" id="s1"><h3>① 撮影した写真</h3><img src="orig_01.jpg" alt="元写真"><p>手に持って引きで撮った1枚を Drive の受信箱に置くだけ</p></div>
       <div class="st" id="s2"><h3>② AI分析</h3><div class="ph" id="ph2">タイトル・説明文・カテゴリ・状態・相場</div><p>写真から商品を特定し、Web検索で相場を調べて値付け根拠を作成</p></div>
       <div class="st" id="s3"><h3>③ 構図の自動調整</h3><div class="ph" id="ph3">AIが被写体を検出 → 必要なら正方形クロップ</div><p>色・明るさは変えない（状態を偽らない方針）。引きの写真だけ商品が75%になるよう切り出す</p></div>
       <div class="st" id="s4"><h3>④ サムネイル合成</h3><div class="ph" id="ph4">ぼかし背景＋タイトル焼き込み</div><p>一覧で目に留まる1枚目を自動生成</p></div>
@@ -55,7 +55,7 @@
     <div class="actions" style="margin-top:10px"><button id="next">▶ 写真を受信箱に入れる</button><button class="ghost" id="reset">最初から</button><span class="muted" id="status"></span></div>
   </section>
   <section class="card" id="cropCard" hidden>
-    <h2>③ 構図の自動調整はこう働く <small>別の出品写真（引きで撮ったもの）での実例。スライダーを左右に動かして比較</small></h2>
+    <h2>③ 構図の自動調整の前後 <small>スライダーを左右に動かして比較</small></h2>
     <div class="cmpwrap">
       <div>
         <div class="cmp" id="cmp">
@@ -86,7 +86,7 @@
 </main>
 <footer>戻る：<a href="../../systems/04-flea-market-autolist.md">04. 家庭の不用品を「写真1枚」で自動出品</a></footer>
 <script>
-const PRODUCT = {"title": "MAMMUT マムート LITHIUM 20 バックパック オリーブ 20L", "description": "マムート（MAMMUT）のバックパック「LITHIUM 20」です。容量20Lのハイキング・デイユース向けモデルで、カラーはオリーブ／カーキ系。\n\n■ 特徴（写真で確認できる範囲）\n・本体正面にマムートのマンモスロゴ\n・トップハンドル、フロントジップポケット\n・チェストストラップ（ハイドレーション用の「H2O」表記あり）、ウエストベルト付き\n・背面はメッシュのベンチレーション構造\n・両サイドのコンプレッションストラップ、底部にドローコード\n・メイン気室のほかに内側ポケットあり（写真参照）\n\n■ 状態\n・中古品です。全体に使用に伴う擦れ・汚れ・色あせが見られます\n・生地の破れや大きなダメージは写真で確認した範囲では見当たりません\n・ファスナー・バックルは動作確認済みです\n\n※ サイズ・重量の実測はしていません。写真でご判断ください。\n※ 中古品のため、細かなキズや使用感はご容赦ください。\n\n■ 発送について\n圧縮して簡易梱包のうえ発送いたします。", "price": 7800, "price_reason": "メーカー希望小売価格は税込17,600円（マムート公式）。中古市場の実売レンジが検索では特定できなかったため、定価の4〜5割・使用感ありを織り込んだ推定価格。値下げ交渉を見込んで少し高めに設定。", "category": "スポーツ・アウトドア", "category_path": ["アウトドア・釣り・旅行用品", "アウトドア", "リュック・バッグ", "バックパック・ザック"], "condition": "やや傷や汚れあり", "condition_detail": "全体に擦れ・汚れ・色あせあり。破れなし。ファスナー・バックルは動作確認済み。", "price_libecity": 7000};
+const PRODUCT = {"title": "コントローラー用 USBワイヤレスアダプター 白", "description": "ゲームコントローラー用のUSBワイヤレスアダプター（白）です。\n\n【状態】\n中古品です。目立った傷や汚れはありません。\n\n中古品であることをご理解のうえ、ご購入をお願いいたします。\n\n【発送】\n防水対策のうえ、らくらくメルカリ便（ネコポス）で発送予定です。", "price": 1280, "price_reason": "【要確認】ブランド・型番・対応機種が写真から特定できず。8BitDo製なら新品3,650円→中古1,500〜2,500円想定", "category": "本・音楽・ゲーム", "category_path": ["ゲーム・おもちゃ・グッズ", "テレビゲーム", "周辺機器"], "condition": "目立った傷や汚れなし", "condition_detail": "通常使用に伴う小傷程度"};
 let step = 1;
 const SITES = [
   {id:"m",name:"メルカリ",cls:"m",priceKey:"price",fields:["title","category","condition","price","description"]},
@@ -114,7 +114,7 @@ function advance(){
   step++;
   const st=document.getElementById("status");
   if (step===2){ document.getElementById("s2").classList.add("on"); document.getElementById("json").textContent=JSON.stringify(PRODUCT,null,2); document.getElementById("ph2").textContent="✔ 商品情報を生成（右に表示）"; st.textContent="AIが写真から商品を特定し、相場を調べて価格根拠を作りました。人はここで内容を確認します。"; document.getElementById("next").textContent="▶ 確認OK → 構図を調整"; }
-  else if (step===3){ document.getElementById("s3").classList.add("on"); document.getElementById("ph3").outerHTML=`<img src="enhanced_01.jpg" alt="補正後" id="ph3">`; st.textContent="AIが被写体を検出。この写真は商品が画面いっぱいなので『クロップ不要』と自動判定（色・明るさは加工しません）。"; document.getElementById("next").textContent="▶ サムネイルを合成"; document.getElementById("cropCard").hidden=false; document.getElementById("cropNote").textContent=CROP_NOTE; }
+  else if (step===3){ document.getElementById("s3").classList.add("on"); document.getElementById("ph3").outerHTML=`<img src="enhanced_01.jpg" alt="補正後" id="ph3">`; st.textContent="AIが被写体を検出し、引きの写真なので商品が75%を占める正方形に切り出しました（色・明るさは加工しません）。下に比較スライダーを表示します。"; document.getElementById("next").textContent="▶ サムネイルを合成"; document.getElementById("cropCard").hidden=false; document.getElementById("cropNote").textContent=CROP_NOTE; }
   else if (step===4){ document.getElementById("s4").classList.add("on"); document.getElementById("ph4").outerHTML=`<img src="thumbnail.jpg" alt="サムネイル" id="ph4">`; st.textContent="実写のぼかし背景にタイトルを焼き込んだ1枚目を生成しました。"; document.getElementById("next").textContent="▶ 3サイトのフォームに自動入力"; }
   else if (step===5){ renderSites(true); st.textContent="3サイトに入力し、読み戻し検収まで完了。あとは人が内容を見て「出品する」を押すだけ（このデモでは押せません）。"; document.getElementById("next").disabled=true; document.getElementById("next").textContent="完了"; }
 }
@@ -123,7 +123,7 @@ function reset(){ step=1; document.getElementById("cropCard").hidden=true; ["s2"
   const p3=document.getElementById("ph3"); p3.outerHTML=`<div class="ph" id="ph3">AIが被写体を検出 → 必要なら正方形クロップ</div>`; const p4=document.getElementById("ph4"); p4.outerHTML=`<div class="ph" id="ph4">ぼかし背景＋タイトル焼き込み</div>`;
   renderSites(false); const b=document.getElementById("next"); b.disabled=false; b.textContent="▶ 写真を受信箱に入れる"; document.getElementById("status").textContent=""; }
 document.getElementById("next").addEventListener("click", advance);
-const CROP_NOTE = "この写真は別の出品物（USB変換アダプタ）を手に持って引きで撮ったもの。AIが商品部分を検出し（緑）、商品が75%を占める正方形（青）に切り出しています。色・明るさは元のまま。※本番処理（photo_enhance.py）の実出力です。";
+const CROP_NOTE = "手に持って引きで撮った元写真から、AIが商品部分を検出し（緑）、商品が75%を占める正方形（青）に切り出しました。色・明るさは元のまま。※本番処理（photo_enhance.py）の実出力です。";
 (function(){ const c=document.getElementById("cmp"); if(!c) return; const after=c.querySelector(".after"), h=c.querySelector(".handle"), k=c.querySelector(".knob");
   function setX(clientX){ const r=c.getBoundingClientRect(); let x=Math.max(0,Math.min(r.width,clientX-r.left)); const pct=x/r.width*100; after.style.clipPath=`inset(0 0 0 ${pct}%)`; h.style.left=pct+"%"; k.style.left=pct+"%"; }
   let drag=false; c.addEventListener("pointerdown",e=>{drag=true;setX(e.clientX)}); window.addEventListener("pointermove",e=>{if(drag)setX(e.clientX)}); window.addEventListener("pointerup",()=>drag=false); })();

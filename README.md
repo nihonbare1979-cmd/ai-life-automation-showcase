@@ -49,7 +49,7 @@ flowchart LR
 | [物件情報の巡回監視Bot](https://nihonbare1979-cmd.github.io/ai-life-automation-showcase/demos/03-property-watch/) | 価格を書き換えて「巡回を実行」→ 新着・値下げを検知しLINE通知文を生成 | 差分検知ロジックを本番からそのまま移植 |
 | [家計簿の自動仕分け](https://nihonbare1979-cmd.github.io/ai-life-automation-showcase/demos/01-household-ledger/) | 明細を編集して「仕分けを実行」→ 分類・転記・差分レポート | 収入分類ルールを本番から移植（辞書は縮小サンプル） |
 | [領収書の経理台帳化](https://nihonbare1979-cmd.github.io/ai-life-automation-showcase/demos/02-rental-accounting/) | 領収書を投入 → AI読取 → 消し込み → 台帳 → ボード更新 | 消し込みロジックは本番同等、AI読取結果は事前計算 |
-| [不用品の自動出品](https://nihonbare1979-cmd.github.io/ai-life-automation-showcase/demos/04-flea-market-autolist/) | 元写真 → AI分析 → 補正 → サムネイル → 3サイト入力 | 画像・商品情報はすべて本物の生成物、フォームは再現 |
+| [不用品の自動出品](https://nihonbare1979-cmd.github.io/ai-life-automation-showcase/demos/04-flea-market-autolist/) | 元写真 → AI分析 → 構図調整（前後比較）→ サムネイル → 3サイト入力 | 画像・商品情報はすべて本物の生成物、フォームは再現 |
 | [AI音声番組の実物サンプル](https://nihonbare1979-cmd.github.io/ai-life-automation-showcase/demos/05-ai-radio/) | 実際に配信した番組から、個人情報を含まない75秒を切り出して再生 | 本物の生成音声（2話者TTS＋自動品質検証を通過したもの） |
 | [間取りエディタ](https://nihonbare1979-cmd.github.io/ai-life-automation-showcase/demos/06-floorplan-editor/) | 3Dスキャンの点群を下敷きに部屋を動かせる | 本番のツールそのもの（物件名のみ置換） |
 
