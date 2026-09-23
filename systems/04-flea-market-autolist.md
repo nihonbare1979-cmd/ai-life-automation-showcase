@@ -8,7 +8,7 @@
 | 出力 | メルカリ・リベシティの**下書き**（人がまとめて点検して出品）と、毎晩の自動値下げ |
 
 > ### ▶ [触って試せるデモを開く](https://nihonbare1979-cmd.github.io/ai-life-automation-showcase/demos/04-flea-market-autolist/)
-> 実際にこの仕組みで出品した私物（USBワイヤレスアダプタ）の元写真から、状態の選択 → AIが作った商品情報 → サムネイル → 2サイトへの入力と読み戻し検収 → 下書き保存までを、処理の順に再現します。
+> 実際にこの仕組みで出品した私物（Apple Watch用の磁気充電ケーブル）の元写真から、状態の選択 → AIが作った商品情報 → サムネイル → 2サイトへの入力と読み戻し検収 → 下書き保存までを、処理の順に再現します。
 > （GitHub Pages で公開。リポジトリ内のファイルは [`demos/04-flea-market-autolist/`](../demos/04-flea-market-autolist/index.html)）
 
 ## 実際の画面

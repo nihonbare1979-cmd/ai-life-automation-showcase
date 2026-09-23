@@ -37,7 +37,7 @@
   <p>写真を撮って商品の状態を6択で選ぶと、AI分析 → サムネイル合成 → 2サイトへの入力と読み戻し検収 → 下書き保存まで進みます。最後の「出品する」だけは、本番でも人がまとめて押します。</p>
 </header>
 <div class="note">
-  <b>このデモについて</b>：写真・サムネイル・商品情報は、実際にこの仕組みで出品した私物（ゲームコントローラー用のUSBワイヤレスアダプタ）の<b>本物の生成物</b>です（サムネイルは2026年9月の新方式で作り直したもの）。AI分析（商品情報の生成・相場調査）とブラウザ操作は公開できないため、ここでは生成済みの結果を段階的に表示します。フォーム入力は各サイトの画面を模した再現です。
+  <b>このデモについて</b>：写真・サムネイル・商品情報は、実際にこの仕組みで出品した私物（Apple純正のApple Watch用 磁気充電ケーブル・2026年9月出品）の<b>本物の生成物</b>です。AI分析（商品情報の生成・相場調査）とブラウザ操作は公開できないため、ここでは生成済みの結果を段階的に表示します。フォーム入力は各サイトの画面を模した再現です。
 </div>
 <main>
   <section class="card">
@@ -55,7 +55,7 @@
         </div>
         <p>状態はAIに決めさせません。撮った人がスマホで選び、写真と一緒に送ります</p></div>
       <div class="st" id="s3"><h3>③ AI分析</h3><div class="ph" id="ph3">タイトル・説明文・カテゴリ・相場</div><p>写真から商品を特定し、Web検索で相場を調べて値付け根拠を作成。状態は②の選択をそのまま使う</p></div>
-      <div class="st" id="s4"><h3>④ サムネイル合成</h3><div class="ph" id="ph4">写真は全面・文字は上部</div><p>写真を切らずに配置し、商品名を入れた1枚目を自動生成</p></div>
+      <div class="st" id="s4"><h3>④ サムネイル合成</h3><div class="ph" id="ph4">ブランド名＋商品名を上部に</div><p>商品を切らない範囲で少し寄せ、ブランド名と商品名を入れた1枚目を自動生成</p></div>
     </div>
     <div class="actions" style="margin-top:10px"><button id="next">▶ 写真と状態を送る</button><button class="ghost" id="reset">最初から</button><span class="muted" id="status">② で状態を選んでから押してください（何を選ぶと説明文がどう変わるか試せます）。</span></div>
   </section>
@@ -74,15 +74,8 @@
 </main>
 <footer>戻る：<a href="../../systems/04-flea-market-autolist.md">04. 不用品販売を「撮る・選ぶ」だけで下書きまで自動化</a></footer>
 <script>
-const BASE = {"title": "コントローラー用 USBワイヤレスアダプター 白", "price": 1280, "price_reason": "【要確認】ブランド・型番・対応機種が写真から特定できず。8BitDo製なら新品3,650円→中古1,500〜2,500円想定", "category": "本・音楽・ゲーム", "category_path": ["ゲーム・おもちゃ・グッズ", "テレビゲーム", "周辺機器"]};
-const COND_TEXT = {
-  "新品、未使用": "新品・未使用品です。",
-  "未使用に近い": "数回使用したのみで、未使用に近い状態です。",
-  "目立った傷や汚れなし": "中古品です。目立った傷や汚れはありません。",
-  "やや傷や汚れあり": "中古品です。使用に伴うやや目立つ傷・汚れがあります。",
-  "傷や汚れあり": "中古品です。傷や汚れがあります。写真でご確認ください。",
-  "全体的に状態が悪い": "中古品です。全体的に使用感・傷みがあります。ジャンク扱いでお願いします。"
-};
+const BASE = {"title": "Apple純正 Apple Watch 磁気充電ケーブル USB-A 動作確認済み", "price": 1500, "price_reason": "純正品の新品は3,000円台。中古はUSB-A版で1,000〜2,000円が中心のため1,500円。", "category": "家電・スマホ・カメラ", "category_path": ["スマホ・タブレット・パソコン", "スマートウォッチ・ウェアラブル", "Apple Watchアクセサリー", "充電器"]};
+const COND_TEXT = {"新品、未使用": "新品・未使用品です。", "未使用に近い": "数回使用したのみで、未使用に近い状態です。", "目立った傷や汚れなし": "中古品です。目立った傷や汚れはありません。細かな使用感はあります", "やや傷や汚れあり": "中古品です。使用に伴うやや目立つ傷・汚れがあります", "傷や汚れあり": "中古品です。傷や汚れがあります。写真でご確認ください", "全体的に状態が悪い": "中古品です。全体的に使用感・傷みがあります"};
 let PRODUCT = null;
 let step = 1;
 const SITES = [
@@ -95,7 +88,7 @@ function build(){
   const c = chosen();
   return Object.assign({}, BASE, {
     condition: c,
-    description: `ゲームコントローラー用のUSBワイヤレスアダプター（白）です。\n\n【状態】\n${COND_TEXT[c]}\n\n【発送】\n防水対策のうえ、らくらくメルカリ便（ネコポス）で発送予定です。`
+    description: `Apple純正のApple Watch用 磁気充電ケーブルです（USB-Aタイプ）。\n\n■ 状態\n・${COND_TEXT[c]}\n・付属品はありません（ケーブル本体のみ）\n\n■ 発送について\n緩衝材で包み、らくらくメルカリ便で発送予定です。`
   });
 }
 function val(site, f){
@@ -120,13 +113,13 @@ function advance(){
   if (step===2){ document.getElementById("s2").classList.add("on"); PRODUCT=build(); document.querySelectorAll('input[name="c"]').forEach(i=>i.disabled=true);
     step=3; document.getElementById("s3").classList.add("on"); document.getElementById("json").textContent=JSON.stringify(PRODUCT,null,2); document.getElementById("ph3").textContent="✔ 商品情報を生成（下に表示）";
     st.textContent=`状態「${PRODUCT.condition}」を受け取り、AIが商品の特定・相場調査・説明文づくりをしました。説明文の【状態】は選んだ内容に合わせて書かれます。`; nx.textContent="▶ サムネイルを合成"; }
-  else if (step===4){ document.getElementById("s4").classList.add("on"); document.getElementById("ph4").outerHTML=`<img src="thumbnail.jpg" alt="サムネイル" id="ph4">`; st.textContent="写真を切らずに全面に置き、上に商品名を入れた1枚目を作りました（色・明るさは元のまま）。"; nx.textContent="▶ 2サイトに入力して下書き保存"; }
+  else if (step===4){ document.getElementById("s4").classList.add("on"); document.getElementById("ph4").outerHTML=`<img src="thumbnail.jpg" alt="サムネイル" id="ph4">`; st.textContent="商品を切らない範囲で少し寄せ、上にブランド名（Apple）と商品名を入れた1枚目を作りました（色・明るさは元のまま）。"; nx.textContent="▶ 2サイトに入力して下書き保存"; }
   else if (step===5){ renderSites(true); document.getElementById("drafts").hidden=false; st.textContent="2サイトに入力し、読み戻し検収 → 写真 → 下書き保存まで完了。人は下書きがたまったらまとめて点検して出品します。"; nx.disabled=true; nx.textContent="完了"; }
 }
 function reset(){ step=1; PRODUCT=null; ["s2","s3","s4"].forEach(id=>document.getElementById(id).classList.remove("on"));
   document.querySelectorAll('input[name="c"]').forEach(i=>i.disabled=false);
   document.getElementById("json").textContent="（③で表示されます）"; document.getElementById("ph3").textContent="タイトル・説明文・カテゴリ・相場";
-  const p4=document.getElementById("ph4"); p4.outerHTML=`<div class="ph" id="ph4">写真は全面・文字は上部</div>`;
+  const p4=document.getElementById("ph4"); p4.outerHTML=`<div class="ph" id="ph4">ブランド名＋商品名を上部に</div>`;
   document.getElementById("drafts").hidden=true; renderSites(false); const b=document.getElementById("next"); b.disabled=false; b.textContent="▶ 写真と状態を送る"; document.getElementById("status").textContent="② で状態を選んでから押してください（何を選ぶと説明文がどう変わるか試せます）。"; }
 document.getElementById("next").addEventListener("click", advance);
 document.getElementById("reset").addEventListener("click", reset);
